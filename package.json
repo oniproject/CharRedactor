@@ -1,0 +1,24 @@
+{
+	"name": "CharRedacor",
+	"version": "0.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "browserify -t vueify -e src/main.js -o build/build.js",
+		"watch": "watchify -t vueify -e src/main.js -o build/build.js"
+	},
+	"author": "lain-dono",
+	"license": "MIT",
+	"devDependencies": {
+		"browserify": "latest",
+		"watchify": "^1.0.6",
+		"insert-css": "^0.2.0",
+		"vueify": "^0.1.0",
+		"coffee-script": "^1.8.0",
+		"jade": "^1.7.0",
+		"stylus": "^0.49.1"
+	},
+	"dependencies": {
+		"vue": "git://github.com/yyx990803/vue"
+	}
+}

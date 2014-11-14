@@ -7870,7 +7870,7 @@ module.exports = {
     graphics.lineTo(10000, 0);
     graphics.moveTo(0, -10000);
     graphics.lineTo(0, 10000);
-    loader = new PIXI.AssetLoader(['/suika.json']);
+    loader = new PIXI.AssetLoader(['suika.json']);
     loader.onComplete = (function(_this) {
       return function() {
         var actor;

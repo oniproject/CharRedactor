@@ -1,13 +1,15 @@
 #add-modal.uk-modal(v-component="addDialog")
 	.uk-modal-dialog.uk-modal-dialog-large
 		a.uk-modal-close.uk-close
-		.uk-form
+		#modal-form.uk-form
 			label json: 
 			input#framesJson(type="file")
 			label image: 
 			input#framesImage(type="file")
 			input.uk-button.uk-button-primary(v-on="click: $emit('checkLoaded')" value="load" type="button")
-		canvas#add-canvas
+			input.uk-button(v-on="click: $emit('clearAll')" value="clear" type="button")
+		#over-container
+			canvas#add-canvas(v-on="click: $emit('getRect', $event)")
 
 canvas#canvas.uk-width-1-2.uk-height-1-1
 .uk-width-1-2.uk-height-1-1.uk-form

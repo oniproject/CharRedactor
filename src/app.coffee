@@ -70,81 +70,7 @@ module.exports =
 
 	components:
 		frame: {}
-		addDialog:
-			events:
-				checkLoaded: ->
-					texture = @$options.texture.baseTexture
-					frames = @$options.json.frames
-					console.log 'checkLoaded', texture, frames
-					for name, frame of frames
-						do (name, frame) =>
-							rect = frame.frame
-							if rect
-								size = new PIXI.Rectangle rect.x, rect.y, rect.w, rect.h
-								crop = size.clone()
-								trim = null
-								if frame.trimmed
-									actualSize = frame.sourceSize
-									realSize = frame.spriteSourceSize
-									trim = new PIXI.Rectangle(
-										realSize.x, realSize.y, actualSize.w, actualSize.h)
-								PIXI.TextureCache[name] = new PIXI.Texture(texture, size, crop, trim)
-
-			attached: ->
-				json = document.getElementById 'framesJson'
-				image = document.getElementById 'framesImage'
-
-				json.addEventListener 'change', (event)=>
-					file = event.target.files[0]
-					reader = new FileReader()
-					reader.onload = (event) =>
-						@$options.json = JSON.parse(reader.result)
-					reader.readAsText file
-					#event.target.value = ''
-				image.addEventListener 'change', (event)=>
-					file = event.target.files[0]
-					reader = new FileReader()
-					reader.onload = (event) =>
-						@$options.texture = PIXI.Texture.fromImage(reader.result)
-					reader.readAsDataURL file
-					#event.target.value = ''
-
-				stage = new PIXI.Stage()
-
-				container = new PIXI.DisplayObjectContainer()
-				stage.addChild(container)
-
-				graphics = new PIXI.Graphics()
-				container.addChild(graphics)
-
-				graphics.lineStyle(1, 0xCC0000, 1)
-				graphics.moveTo(-10000, 0)
-				graphics.lineTo(10000, 0)
-				graphics.moveTo(0, -10000)
-				graphics.lineTo(0, 10000)
-
-				canvas = document.getElementById('add-canvas')
-				renderer = PIXI.autoDetectRenderer getW(canvas), getH(canvas),
-					view: canvas
-					transparent: true
-					antialias: true
-					resolution: 2
-
-				animate = ->
-					Vue.nextTick animate
-					renderer.render(stage)
-				Vue.nextTick animate
-
-				resize = ->
-					w = getW(canvas)
-					h = getH(canvas)
-					container.x = (w / 2) | 0
-					container.y = (h / 2) | 0
-					renderer.resize(w, h)
-
-				window.addEventListener('resize', resize)
-				resize()
-
+		addDialog: require './modal.coffee'
 	events:
 		undo: (count) ->
 		redo: (count) ->
@@ -155,6 +81,8 @@ module.exports =
 			json = JSON.stringify @$data.animations
 			blob = new Blob([json], {type: 'text/json;charset=utf-8'})
 			saveAs blob, 'animations.json'
+		add: (name) ->
+			console.log 'add', name
 
 	methods:
 		addAnimation: ->
@@ -227,7 +155,7 @@ module.exports =
 			view: canvas
 			transparent: true
 			antialias: true
-			resolution: 2
+			resolution: 1
 
 		animate = ->
 			Vue.nextTick animate

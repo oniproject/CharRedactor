@@ -1,6 +1,7 @@
 'use strict'
 
 Actor = require './actor'
+saveAs = require 'filesaver.js'
 
 getH = (el) ->
 	style = window.getComputedStyle(el, null)
@@ -15,17 +16,17 @@ module.exports =
 	template: require('./app.jade')()
 	data:
 		currentDirection: '↓'
-		currentAnimation: 'idle'
+		currentAnimation: 'vfds'
 		newAnimationName: ''
 
 		selectedFrame: -1
 		newFrameName: 'suika walk ↘ 0'
 
-		#// ↖ ↑ ↗
-		#// ←   →
-		#// ↙ ↓ ↘
+		# ↖ ↑ ↗
+		# ←   →
+		# ↙ ↓ ↘
 		animations:
-			'idle':
+			'vfds':
 				directions:
 					'↓': [
 						{
@@ -57,15 +58,13 @@ module.exports =
 							rot: 0
 						},
 					]
-			'move':
-				directions: {}
 
 	filters:
 		degrees:
 			read: (val) ->
-				val * (180 / Math.PI);
+				val * (180 / Math.PI)
 			write: (val, oldVal) ->
-				val * (Math.PI / 180);
+				val * (Math.PI / 180)
 
 	components:
 		frame: {}
@@ -74,10 +73,18 @@ module.exports =
 		undo: (count) ->
 		redo: (count) ->
 		load: (data) ->
+		save: () ->
+			json = JSON.stringify @$data.animations
+			blob = new Blob([json], {type: 'text/json;charset=utf-8'})
+			saveAs blob, 'animations.json'
 
 	methods:
 		addAnimation: ->
-			@animations.$add(@newAnimationName, {})
+			@animations.$add @newAnimationName,
+				directions:
+					'↖':[], '↑':[], '↗':[]
+					'←':[],         '→':[]
+					'↙':[], '↓':[], '↘':[]
 			@newAnimationName = ''
 		rmAnimation: ->
 			@animations.$delete(@currentAnimation)
@@ -125,6 +132,10 @@ module.exports =
 			actor.currentAnimation = @currentAnimation
 			actor.currentDirection = @currentDirection
 			actor.currentFrame = 0
+
+			@$watch 'currentDirection', ((val, oldVal) -> actor.currentDirection = val), true
+			@$watch 'currentAnimation', ((val, oldVal) -> actor.currentAnimation = val), true
+
 		loader.load()
 
 		canvas = @$el.getElementsByTagName('canvas')[0]

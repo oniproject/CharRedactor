@@ -15,12 +15,19 @@ canvas#canvas.uk-width-1-2.uk-height-1-1
 			input.uk-button(type="button" value="↘" v-on="click: currentDirection = '↘'")
 
 		.uk-width-1-2
-			select.uk-form-width-small (v-model="currentAnimation")
+			select.uk-form-width-small(v-model="currentAnimation")
 				option(v-repeat="animations") {{$key}}
+
 			input.uk-button.uk-button-danger(v-on="click: rmAnimation" type="button" value="rm")
 			br
 			input.uk-form-width-small(v-model="newAnimationName" placeholder="Name")
 			input.uk-button.uk-button-success(v-on="click: addAnimation" type="button" value="add")
+
+			br
+			br
+
+			button.uk-button(v-on="click: $emit('save')").
+				save
 	hr
 
 	table.frames.uk-table.uk-table-condensed.uk-table-hover(
@@ -55,4 +62,5 @@ canvas#canvas.uk-width-1-2.uk-height-1-1
 	input.uk-form-width-small(v-model="newFrameName")
 	input.uk-button.uk-button-success(v-on="click: addFrame" type="button" value="add")
 	input.uk-button.uk-button-danger(v-on="click: rmFrame" type="button" value="rm")
+	p ↖ ↑ ↗ ← → ↙ ↓ ↘
 

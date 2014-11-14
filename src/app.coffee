@@ -117,7 +117,7 @@ module.exports =
 		graphics.moveTo(0, -10000)
 		graphics.lineTo(0, 10000)
 
-		loader = new PIXI.AssetLoader(['/suika.json'])
+		loader = new PIXI.AssetLoader(['suika.json'])
 		loader.onComplete = =>
 			actor = new Actor(@$data.animations)
 			actor.scale.x = actor.scale.y = 0.5

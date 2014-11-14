@@ -7904,6 +7904,10 @@ Actor.prototype.updateTransform = function() {
 			this.lastTime = time;
 
 			var frames = this.getFrames();
+			if (!frames && this._sprite) {
+				this._sprite.visible = false;
+				return
+			}
 
 			this._currentFrame++;
 
@@ -8026,7 +8030,10 @@ module.exports = {
   events: {
     undo: function(count) {},
     redo: function(count) {},
-    load: function(data) {},
+    load: function(data) {
+      this.animations = data;
+      return console.info(data);
+    },
     save: function() {
       var blob, json;
       json = JSON.stringify(this.$data.animations);
@@ -8083,7 +8090,20 @@ module.exports = {
     }
   },
   ready: function() {
-    var animate, canvas, container, graphics, loader, renderer, resize, stage;
+    var animate, canvas, container, graphics, handleFileSelect, loader, renderer, resize, stage;
+    handleFileSelect = (function(_this) {
+      return function(event) {
+        var file, reader;
+        file = event.target.files[0];
+        reader = new FileReader();
+        reader.onload = function(event) {
+          return _this.$emit('load', JSON.parse(reader.result));
+        };
+        reader.readAsText(file);
+        return event.target.value = '';
+      };
+    })(this);
+    document.getElementById('file').addEventListener('change', handleFileSelect, false);
     stage = new PIXI.Stage();
     container = new PIXI.DisplayObjectContainer();
     stage.addChild(container);
@@ -8148,7 +8168,7 @@ var buf = [];
 var jade_mixins = {};
 var jade_interp;
 
-buf.push("<canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select v-model=\"currentAnimation\" class=\"uk-form-width-small\"><option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><br/><br/><button v-on=\"click: $emit('save')\" class=\"uk-button\">save</button></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td></tr></tbody></table><input v-model=\"newFrameName\" class=\"uk-form-width-small\"/><input v-on=\"click: addFrame\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><input v-on=\"click: rmFrame\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><p>↖ ↑ ↗ ← → ↙ ↓ ↘</p></div>");;return buf.join("");
+buf.push("<canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select v-model=\"currentAnimation\" class=\"uk-form-width-small\"><option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><br/><br/><button v-on=\"click: $emit('save')\" class=\"uk-button\">save</button><span>&nbsp;</span><input id=\"file\" type=\"file\"/></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td></tr></tbody></table><input v-model=\"newFrameName\" class=\"uk-form-width-small\"/><input v-on=\"click: addFrame\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><input v-on=\"click: rmFrame\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><p>↖ ↑ ↗ ← → ↙ ↓ ↘</p></div>");;return buf.join("");
 };
 },{"jade/runtime":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/jade/runtime.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.styl":[function(require,module,exports){
 module.exports = ".arrow input {\n  width: 3em;\n  height: 3em;\n}\n.frames input {\n  margin: 0 !important;\n  padding: 0 !important;\n  border-width: 0 0 1px 0 !important;\n  width: 100%;\n}\n.frames .selected {\n  background-color: #c00;\n}\n"

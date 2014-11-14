@@ -99,6 +99,10 @@ Actor.prototype.updateTransform = function() {
 			this.lastTime = time;
 
 			var frames = this.getFrames();
+			if (!frames && this._sprite) {
+				this._sprite.visible = false;
+				return
+			}
 
 			this._currentFrame++;
 

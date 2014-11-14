@@ -74,7 +74,7 @@ module.exports =
 		redo: (count) ->
 		load: (data) ->
 			@animations = data
-			console.info data
+			@$options.actor.data = data
 		save: () ->
 			json = JSON.stringify @$data.animations
 			blob = new Blob([json], {type: 'text/json;charset=utf-8'})
@@ -138,7 +138,7 @@ module.exports =
 
 		loader = new PIXI.AssetLoader(['suika.json'])
 		loader.onComplete = =>
-			actor = new Actor(@$data.animations)
+			actor = @$options.actor = new Actor(@$data.animations)
 			actor.scale.x = actor.scale.y = 0.5
 			container.addChild(actor)
 			actor.currentAnimation = @currentAnimation

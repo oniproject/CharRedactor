@@ -8032,7 +8032,7 @@ module.exports = {
     redo: function(count) {},
     load: function(data) {
       this.animations = data;
-      return console.info(data);
+      return this.$options.actor.data = data;
     },
     save: function() {
       var blob, json;
@@ -8118,7 +8118,7 @@ module.exports = {
     loader.onComplete = (function(_this) {
       return function() {
         var actor;
-        actor = new Actor(_this.$data.animations);
+        actor = _this.$options.actor = new Actor(_this.$data.animations);
         actor.scale.x = actor.scale.y = 0.5;
         container.addChild(actor);
         actor.currentAnimation = _this.currentAnimation;

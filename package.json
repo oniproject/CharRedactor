@@ -19,6 +19,7 @@
     "watchify": "^1.0.6"
   },
   "dependencies": {
+    "filesaver.js": "^0.1.0",
     "vue": "git://github.com/yyx990803/vue"
   }
 }

@@ -1,28 +1,5 @@
 'use strict';
 
-/*
-0 → x
-↓ nw  n  ne
-y  w      e
-  sw  s  se
-
- [x,y,w,h]
-
-
-
-	var SprNo = spr[0];
-	var SprType = spr[1];
-	var Xoffs = spr[2];
-	var Yoffs = spr[3];
-	var Mirror = spr[4]?-1:1;
-	var AABBGGRR = spr[5];
-	var Xmag = spr[6];
-	var Ymag = spr[7];
-	var Rot = spr[8];
-
-
-*/
-
 var Actor = function(data) {
 	PIXI.DisplayObjectContainer.call(this);
 
@@ -34,29 +11,9 @@ var Actor = function(data) {
 	this._currentFrame = 0;
 
 	this.lastTime = window.performance.now();
-
-	//PIXI.Sprite.call(this, textures[0]);
-	//this.textures = textures;
-	//this.animationSpeed = 100;
-	//this.loop = true;
-	//this.onComplete = null;
-	//this.currentFrame = 0;
 	this.playing = true;
 
 	this._currentDelta = 100;
-
-	/*this.sprites = [];
-
-	var _te = PIXI.Texture.fromImage("");
-	while (count--) {
-		var s = new PIXI.Sprite(_te);
-		s.visible = false;
-		this.sprites.push(s);
-		this.addChild(s);
-	}
-
-	this.updateSprite();
-	*/
 }
 
 Actor.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -151,12 +108,18 @@ Actor.prototype.updateTransform = function() {
 			//this._upd = true;
 			var frame = frames[this._currentFrame];
 			var texture = PIXI.TextureCache[frame.name];
-			if (!texture) return;
+			if (!texture) {
+				if (this._sprite) {
+					this._sprite.visible = false;
+				}
+				return;
+			}
 			if (!this._sprite) {
 				this._sprite = new PIXI.Sprite(texture);
 				this.addChild(this._sprite);
 			}
 			this._currentDelta = frame.t;
+			this._sprite.visible = true;
 			var sprite = this._sprite;
 			sprite.position.x = frame.x;
 			sprite.position.y = frame.y;

@@ -73,6 +73,8 @@ module.exports =
 		undo: (count) ->
 		redo: (count) ->
 		load: (data) ->
+			@animations = data
+			console.info data
 		save: () ->
 			json = JSON.stringify @$data.animations
 			blob = new Blob([json], {type: 'text/json;charset=utf-8'})
@@ -110,6 +112,16 @@ module.exports =
 				console.warn('rm FAIL', @selectedFrame, frames.length)
 
 	ready: ->
+		handleFileSelect = (event)=>
+			file = event.target.files[0]
+			reader = new FileReader()
+			reader.onload = (event) =>
+				@$emit 'load', JSON.parse(reader.result)
+			reader.readAsText file
+			event.target.value = ''
+
+		document.getElementById('file').addEventListener('change', handleFileSelect, false)
+
 		stage = new PIXI.Stage()
 
 		container = new PIXI.DisplayObjectContainer()

@@ -1,4 +1,247 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/insert-css/index.js":[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/filesaver.js/FileSaver.js":[function(require,module,exports){
+/* FileSaver.js
+ *  A saveAs() FileSaver implementation.
+ *  2014-05-27
+ *
+ *  By Eli Grey, http://eligrey.com
+ *  License: X11/MIT
+ *    See https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
+ */
+
+/*global self */
+/*jslint bitwise: true, indent: 4, laxbreak: true, laxcomma: true, smarttabs: true, plusplus: true */
+
+/*! @source http://purl.eligrey.com/github/FileSaver.js/blob/master/FileSaver.js */
+
+var saveAs = saveAs
+  // IE 10+ (native saveAs)
+  || (typeof navigator !== "undefined" &&
+      navigator.msSaveOrOpenBlob && navigator.msSaveOrOpenBlob.bind(navigator))
+  // Everyone else
+  || (function(view) {
+	"use strict";
+	// IE <10 is explicitly unsupported
+	if (typeof navigator !== "undefined" &&
+	    /MSIE [1-9]\./.test(navigator.userAgent)) {
+		return;
+	}
+	var
+		  doc = view.document
+		  // only get URL when necessary in case Blob.js hasn't overridden it yet
+		, get_URL = function() {
+			return view.URL || view.webkitURL || view;
+		}
+		, save_link = doc.createElementNS("http://www.w3.org/1999/xhtml", "a")
+		, can_use_save_link = !view.externalHost && "download" in save_link
+		, click = function(node) {
+			var event = doc.createEvent("MouseEvents");
+			event.initMouseEvent(
+				"click", true, false, view, 0, 0, 0, 0, 0
+				, false, false, false, false, 0, null
+			);
+			node.dispatchEvent(event);
+		}
+		, webkit_req_fs = view.webkitRequestFileSystem
+		, req_fs = view.requestFileSystem || webkit_req_fs || view.mozRequestFileSystem
+		, throw_outside = function(ex) {
+			(view.setImmediate || view.setTimeout)(function() {
+				throw ex;
+			}, 0);
+		}
+		, force_saveable_type = "application/octet-stream"
+		, fs_min_size = 0
+		, deletion_queue = []
+		, process_deletion_queue = function() {
+			var i = deletion_queue.length;
+			while (i--) {
+				var file = deletion_queue[i];
+				if (typeof file === "string") { // file is an object URL
+					get_URL().revokeObjectURL(file);
+				} else { // file is a File
+					file.remove();
+				}
+			}
+			deletion_queue.length = 0; // clear queue
+		}
+		, dispatch = function(filesaver, event_types, event) {
+			event_types = [].concat(event_types);
+			var i = event_types.length;
+			while (i--) {
+				var listener = filesaver["on" + event_types[i]];
+				if (typeof listener === "function") {
+					try {
+						listener.call(filesaver, event || filesaver);
+					} catch (ex) {
+						throw_outside(ex);
+					}
+				}
+			}
+		}
+		, FileSaver = function(blob, name) {
+			// First try a.download, then web filesystem, then object URLs
+			var
+				  filesaver = this
+				, type = blob.type
+				, blob_changed = false
+				, object_url
+				, target_view
+				, get_object_url = function() {
+					var object_url = get_URL().createObjectURL(blob);
+					deletion_queue.push(object_url);
+					return object_url;
+				}
+				, dispatch_all = function() {
+					dispatch(filesaver, "writestart progress write writeend".split(" "));
+				}
+				// on any filesys errors revert to saving with object URLs
+				, fs_error = function() {
+					// don't create more object URLs than needed
+					if (blob_changed || !object_url) {
+						object_url = get_object_url(blob);
+					}
+					if (target_view) {
+						target_view.location.href = object_url;
+					} else {
+						window.open(object_url, "_blank");
+					}
+					filesaver.readyState = filesaver.DONE;
+					dispatch_all();
+				}
+				, abortable = function(func) {
+					return function() {
+						if (filesaver.readyState !== filesaver.DONE) {
+							return func.apply(this, arguments);
+						}
+					};
+				}
+				, create_if_not_found = {create: true, exclusive: false}
+				, slice
+			;
+			filesaver.readyState = filesaver.INIT;
+			if (!name) {
+				name = "download";
+			}
+			if (can_use_save_link) {
+				object_url = get_object_url(blob);
+				save_link.href = object_url;
+				save_link.download = name;
+				click(save_link);
+				filesaver.readyState = filesaver.DONE;
+				dispatch_all();
+				return;
+			}
+			// Object and web filesystem URLs have a problem saving in Google Chrome when
+			// viewed in a tab, so I force save with application/octet-stream
+			// http://code.google.com/p/chromium/issues/detail?id=91158
+			if (view.chrome && type && type !== force_saveable_type) {
+				slice = blob.slice || blob.webkitSlice;
+				blob = slice.call(blob, 0, blob.size, force_saveable_type);
+				blob_changed = true;
+			}
+			// Since I can't be sure that the guessed media type will trigger a download
+			// in WebKit, I append .download to the filename.
+			// https://bugs.webkit.org/show_bug.cgi?id=65440
+			if (webkit_req_fs && name !== "download") {
+				name += ".download";
+			}
+			if (type === force_saveable_type || webkit_req_fs) {
+				target_view = view;
+			}
+			if (!req_fs) {
+				fs_error();
+				return;
+			}
+			fs_min_size += blob.size;
+			req_fs(view.TEMPORARY, fs_min_size, abortable(function(fs) {
+				fs.root.getDirectory("saved", create_if_not_found, abortable(function(dir) {
+					var save = function() {
+						dir.getFile(name, create_if_not_found, abortable(function(file) {
+							file.createWriter(abortable(function(writer) {
+								writer.onwriteend = function(event) {
+									target_view.location.href = file.toURL();
+									deletion_queue.push(file);
+									filesaver.readyState = filesaver.DONE;
+									dispatch(filesaver, "writeend", event);
+								};
+								writer.onerror = function() {
+									var error = writer.error;
+									if (error.code !== error.ABORT_ERR) {
+										fs_error();
+									}
+								};
+								"writestart progress write abort".split(" ").forEach(function(event) {
+									writer["on" + event] = filesaver["on" + event];
+								});
+								writer.write(blob);
+								filesaver.abort = function() {
+									writer.abort();
+									filesaver.readyState = filesaver.DONE;
+								};
+								filesaver.readyState = filesaver.WRITING;
+							}), fs_error);
+						}), fs_error);
+					};
+					dir.getFile(name, {create: false}, abortable(function(file) {
+						// delete file if it already exists
+						file.remove();
+						save();
+					}), abortable(function(ex) {
+						if (ex.code === ex.NOT_FOUND_ERR) {
+							save();
+						} else {
+							fs_error();
+						}
+					}));
+				}), fs_error);
+			}), fs_error);
+		}
+		, FS_proto = FileSaver.prototype
+		, saveAs = function(blob, name) {
+			return new FileSaver(blob, name);
+		}
+	;
+	FS_proto.abort = function() {
+		var filesaver = this;
+		filesaver.readyState = filesaver.DONE;
+		dispatch(filesaver, "abort");
+	};
+	FS_proto.readyState = FS_proto.INIT = 0;
+	FS_proto.WRITING = 1;
+	FS_proto.DONE = 2;
+
+	FS_proto.error =
+	FS_proto.onwritestart =
+	FS_proto.onprogress =
+	FS_proto.onwrite =
+	FS_proto.onabort =
+	FS_proto.onerror =
+	FS_proto.onwriteend =
+		null;
+
+	view.addEventListener("unload", process_deletion_queue, false);
+	saveAs.unload = function() {
+		process_deletion_queue();
+		view.removeEventListener("unload", process_deletion_queue, false);
+	};
+	return saveAs;
+}(
+	   typeof self !== "undefined" && self
+	|| typeof window !== "undefined" && window
+	|| this.content
+));
+// `self` is undefined in Firefox for Android content script context
+// while `this` is nsIContentFrameMessageManager
+// with an attribute `content` that corresponds to the window
+
+if (typeof module !== "undefined" && module !== null) {
+  module.exports = saveAs;
+} else if ((typeof define !== "undefined" && define !== null) && (define.amd != null)) {
+  define([], function() {
+    return saveAs;
+  });
+}
+
+},{}],"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/insert-css/index.js":[function(require,module,exports){
 var inserted = {};
 
 module.exports = function (css, options) {
@@ -7562,29 +7805,6 @@ module.exports = Watcher
 },{"./batcher":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/batcher.js","./config":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/config.js","./observer":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/observer/index.js","./parse/expression":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/parse/expression.js","./util":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/util/index.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/actor.js":[function(require,module,exports){
 'use strict';
 
-/*
-0 → x
-↓ nw  n  ne
-y  w      e
-  sw  s  se
-
- [x,y,w,h]
-
-
-
-	var SprNo = spr[0];
-	var SprType = spr[1];
-	var Xoffs = spr[2];
-	var Yoffs = spr[3];
-	var Mirror = spr[4]?-1:1;
-	var AABBGGRR = spr[5];
-	var Xmag = spr[6];
-	var Ymag = spr[7];
-	var Rot = spr[8];
-
-
-*/
-
 var Actor = function(data) {
 	PIXI.DisplayObjectContainer.call(this);
 
@@ -7596,29 +7816,9 @@ var Actor = function(data) {
 	this._currentFrame = 0;
 
 	this.lastTime = window.performance.now();
-
-	//PIXI.Sprite.call(this, textures[0]);
-	//this.textures = textures;
-	//this.animationSpeed = 100;
-	//this.loop = true;
-	//this.onComplete = null;
-	//this.currentFrame = 0;
 	this.playing = true;
 
 	this._currentDelta = 100;
-
-	/*this.sprites = [];
-
-	var _te = PIXI.Texture.fromImage("");
-	while (count--) {
-		var s = new PIXI.Sprite(_te);
-		s.visible = false;
-		this.sprites.push(s);
-		this.addChild(s);
-	}
-
-	this.updateSprite();
-	*/
 }
 
 Actor.prototype = Object.create(PIXI.DisplayObjectContainer.prototype);
@@ -7713,12 +7913,18 @@ Actor.prototype.updateTransform = function() {
 			//this._upd = true;
 			var frame = frames[this._currentFrame];
 			var texture = PIXI.TextureCache[frame.name];
-			if (!texture) return;
+			if (!texture) {
+				if (this._sprite) {
+					this._sprite.visible = false;
+				}
+				return;
+			}
 			if (!this._sprite) {
 				this._sprite = new PIXI.Sprite(texture);
 				this.addChild(this._sprite);
 			}
 			this._currentDelta = frame.t;
+			this._sprite.visible = true;
 			var sprite = this._sprite;
 			sprite.position.x = frame.x;
 			sprite.position.y = frame.y;
@@ -7736,9 +7942,11 @@ module.exports = Actor;
 
 },{}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.coffee":[function(require,module,exports){
 'use strict';
-var Actor, getH, getW;
+var Actor, getH, getW, saveAs;
 
 Actor = require('./actor');
+
+saveAs = require('filesaver.js');
 
 getH = function(el) {
   var style;
@@ -7756,12 +7964,12 @@ module.exports = {
   template: require('./app.jade')(),
   data: {
     currentDirection: '↓',
-    currentAnimation: 'idle',
+    currentAnimation: 'vfds',
     newAnimationName: '',
     selectedFrame: -1,
     newFrameName: 'suika walk ↘ 0',
     animations: {
-      'idle': {
+      'vfds': {
         directions: {
           '↓': [
             {
@@ -7799,9 +8007,6 @@ module.exports = {
             }
           ]
         }
-      },
-      'move': {
-        directions: {}
       }
     }
   },
@@ -7821,11 +8026,30 @@ module.exports = {
   events: {
     undo: function(count) {},
     redo: function(count) {},
-    load: function(data) {}
+    load: function(data) {},
+    save: function() {
+      var blob, json;
+      json = JSON.stringify(this.$data.animations);
+      blob = new Blob([json], {
+        type: 'text/json;charset=utf-8'
+      });
+      return saveAs(blob, 'animations.json');
+    }
   },
   methods: {
     addAnimation: function() {
-      this.animations.$add(this.newAnimationName, {});
+      this.animations.$add(this.newAnimationName, {
+        directions: {
+          '↖': [],
+          '↑': [],
+          '↗': [],
+          '←': [],
+          '→': [],
+          '↙': [],
+          '↓': [],
+          '↘': []
+        }
+      });
       return this.newAnimationName = '';
     },
     rmAnimation: function() {
@@ -7879,7 +8103,13 @@ module.exports = {
         container.addChild(actor);
         actor.currentAnimation = _this.currentAnimation;
         actor.currentDirection = _this.currentDirection;
-        return actor.currentFrame = 0;
+        actor.currentFrame = 0;
+        _this.$watch('currentDirection', (function(val, oldVal) {
+          return actor.currentDirection = val;
+        }), true);
+        return _this.$watch('currentAnimation', (function(val, oldVal) {
+          return actor.currentAnimation = val;
+        }), true);
       };
     })(this);
     loader.load();
@@ -7910,7 +8140,7 @@ module.exports = {
 
 
 
-},{"./actor":"/home/lain/gocode/src/oniproject/CharRedactor/src/actor.js","./app.jade":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade":[function(require,module,exports){
+},{"./actor":"/home/lain/gocode/src/oniproject/CharRedactor/src/actor.js","./app.jade":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade","filesaver.js":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/filesaver.js/FileSaver.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade":[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -7918,7 +8148,7 @@ var buf = [];
 var jade_mixins = {};
 var jade_interp;
 
-buf.push("<canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select class=\"uk-form-width-small\">(v-model=\"currentAnimation\")<option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td></tr></tbody></table><input v-model=\"newFrameName\" class=\"uk-form-width-small\"/><input v-on=\"click: addFrame\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><input v-on=\"click: rmFrame\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/></div>");;return buf.join("");
+buf.push("<canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select v-model=\"currentAnimation\" class=\"uk-form-width-small\"><option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><br/><br/><button v-on=\"click: $emit('save')\" class=\"uk-button\">save</button></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td></tr></tbody></table><input v-model=\"newFrameName\" class=\"uk-form-width-small\"/><input v-on=\"click: addFrame\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><input v-on=\"click: rmFrame\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><p>↖ ↑ ↗ ← → ↙ ↓ ↘</p></div>");;return buf.join("");
 };
 },{"jade/runtime":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/jade/runtime.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.styl":[function(require,module,exports){
 module.exports = ".arrow input {\n  width: 3em;\n  height: 3em;\n}\n.frames input {\n  margin: 0 !important;\n  padding: 0 !important;\n  border-width: 0 0 1px 0 !important;\n  width: 100%;\n}\n.frames .selected {\n  background-color: #c00;\n}\n"

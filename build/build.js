@@ -7946,7 +7946,9 @@ module.exports = Actor;
 
 },{}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.coffee":[function(require,module,exports){
 'use strict';
-var Actor, getH, getW, saveAs;
+var Actor, Vue, getH, getW, saveAs;
+
+Vue = require('vue');
 
 Actor = require('./actor');
 
@@ -8025,14 +8027,20 @@ module.exports = {
     }
   },
   components: {
-    frame: {}
+    frame: {
+      methods: {
+        rmFrame: function(id) {
+          return this.frames.splice(id, 1);
+        }
+      }
+    },
+    addDialog: require('./modal.coffee')
   },
   events: {
     undo: function(count) {},
     redo: function(count) {},
     load: function(data) {
-      this.animations = data;
-      return this.$options.actor.data = data;
+      return this.animations = this.$options.actor.data = data;
     },
     save: function() {
       var blob, json;
@@ -8041,6 +8049,20 @@ module.exports = {
         type: 'text/json;charset=utf-8'
       });
       return saveAs(blob, 'animations.json');
+    },
+    add: function(name) {
+      var anim, frames;
+      anim = this.animations[this.currentAnimation];
+      frames = anim.directions[this.currentDirection];
+      return frames.push({
+        name: name,
+        t: 100,
+        x: 0,
+        y: 0,
+        sx: 1.0,
+        sy: 1.0,
+        rot: 0
+      });
     }
   },
   methods: {
@@ -8062,35 +8084,10 @@ module.exports = {
     rmAnimation: function() {
       this.animations.$delete(this.currentAnimation);
       return this.currentAnimation = '';
-    },
-    addFrame: function() {
-      var anim, frames;
-      anim = this.animations[this.currentAnimation];
-      frames = anim.directions[this.currentDirection];
-      return frames.push({
-        name: this.newFrameName,
-        t: 0,
-        x: 0,
-        y: 0,
-        sx: 1.0,
-        sy: 1.0,
-        rot: 0
-      });
-    },
-    rmFrame: function() {
-      var anim, frames;
-      anim = this.animations[this.currentAnimation];
-      frames = anim.directions[this.currentDirection];
-      if (this.selectedFrame !== -1 && this.selectedFrame < frames.length) {
-        frames.splice(this.selectedFrame, 1);
-        return console.info('rm', this.selectedFrame);
-      } else {
-        return console.warn('rm FAIL', this.selectedFrame, frames.length);
-      }
     }
   },
   ready: function() {
-    var animate, canvas, container, graphics, handleFileSelect, loader, renderer, resize, stage;
+    var actor, animate, canvas, container, graphics, handleFileSelect, renderer, resize, stage;
     handleFileSelect = (function(_this) {
       return function(event) {
         var file, reader;
@@ -8114,37 +8111,31 @@ module.exports = {
     graphics.lineTo(10000, 0);
     graphics.moveTo(0, -10000);
     graphics.lineTo(0, 10000);
-    loader = new PIXI.AssetLoader(['suika.json']);
-    loader.onComplete = (function(_this) {
-      return function() {
-        var actor;
-        actor = _this.$options.actor = new Actor(_this.$data.animations);
-        actor.scale.x = actor.scale.y = 0.5;
-        container.addChild(actor);
-        actor.currentAnimation = _this.currentAnimation;
-        actor.currentDirection = _this.currentDirection;
-        actor.currentFrame = 0;
-        _this.$watch('currentDirection', (function(val, oldVal) {
-          return actor.currentDirection = val;
-        }), true);
-        return _this.$watch('currentAnimation', (function(val, oldVal) {
-          return actor.currentAnimation = val;
-        }), true);
-      };
-    })(this);
-    loader.load();
-    canvas = this.$el.getElementsByTagName('canvas')[0];
+    actor = this.$options.actor = new Actor(this.$data.animations);
+    container.addChild(actor);
+    actor.currentAnimation = this.currentAnimation;
+    actor.currentDirection = this.currentDirection;
+    actor.currentFrame = 0;
+    this.$watch('currentDirection', (function(val, oldVal) {
+      actor.currentDirection = val;
+      return actor.currentFrame = 0;
+    }), true);
+    this.$watch('currentAnimation', (function(val, oldVal) {
+      actor.currentAnimation = val;
+      return actor.currentFrame = 0;
+    }), true);
+    canvas = document.getElementById('canvas');
     renderer = PIXI.autoDetectRenderer(getW(canvas), getH(canvas), {
       view: canvas,
       transparent: true,
       antialias: true,
-      resolution: 2
+      resolution: 1
     });
     animate = function() {
-      requestAnimFrame(animate);
+      Vue.nextTick(animate);
       return renderer.render(stage);
     };
-    requestAnimFrame(animate);
+    Vue.nextTick(animate);
     resize = function() {
       var h, w;
       w = getW(canvas);
@@ -8160,7 +8151,7 @@ module.exports = {
 
 
 
-},{"./actor":"/home/lain/gocode/src/oniproject/CharRedactor/src/actor.js","./app.jade":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade","filesaver.js":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/filesaver.js/FileSaver.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade":[function(require,module,exports){
+},{"./actor":"/home/lain/gocode/src/oniproject/CharRedactor/src/actor.js","./app.jade":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade","./modal.coffee":"/home/lain/gocode/src/oniproject/CharRedactor/src/modal.coffee","filesaver.js":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/filesaver.js/FileSaver.js","vue":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/vue.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.jade":[function(require,module,exports){
 var jade = require("jade/runtime");
 
 module.exports = function template(locals) {
@@ -8168,10 +8159,10 @@ var buf = [];
 var jade_mixins = {};
 var jade_interp;
 
-buf.push("<canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select v-model=\"currentAnimation\" class=\"uk-form-width-small\"><option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><br/><br/><button v-on=\"click: $emit('save')\" class=\"uk-button\">save</button><span>&nbsp;</span><input id=\"file\" type=\"file\"/></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td></tr></tbody></table><input v-model=\"newFrameName\" class=\"uk-form-width-small\"/><input v-on=\"click: addFrame\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><input v-on=\"click: rmFrame\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><p>↖ ↑ ↗ ← → ↙ ↓ ↘</p></div>");;return buf.join("");
+buf.push("<div id=\"add-modal\" v-component=\"addDialog\" class=\"uk-modal\"><div class=\"uk-modal-dialog uk-modal-dialog-large\"><a class=\"uk-modal-close uk-close\"></a><div id=\"modal-form\" class=\"uk-form\"><label>json: </label><input id=\"framesJson\" type=\"file\"/><label>image: </label><input id=\"framesImage\" type=\"file\"/><input v-on=\"click: $emit('checkLoaded')\" value=\"load\" type=\"button\" class=\"uk-button uk-button-primary\"/><input v-on=\"click: $emit('clearAll')\" value=\"clear\" type=\"button\" class=\"uk-button\"/></div><div id=\"over-container\"><canvas id=\"add-canvas\" v-on=\"click: $emit('getRect', $event)\"></canvas></div></div></div><canvas id=\"canvas\" class=\"uk-width-1-2 uk-height-1-1\"></canvas><div class=\"uk-width-1-2 uk-height-1-1 uk-form\"><div class=\"uk-grid\"><div class=\"uk-width-1-2 arrow\"><input type=\"button\" value=\"↖\" v-on=\"click: currentDirection = '↖'\" class=\"uk-button\"/><input type=\"button\" value=\"↑\" v-on=\"click: currentDirection = '↑'\" class=\"uk-button\"/><input type=\"button\" value=\"↗\" v-on=\"click: currentDirection = '↗'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"←\" v-on=\"click: currentDirection = '←'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-model=\"currentDirection\" class=\"uk-button uk-button-primary\"/><input type=\"button\" value=\"→\" v-on=\"click: currentDirection = '→'\" class=\"uk-button\"/><br/><input type=\"button\" value=\"↙\" v-on=\"click: currentDirection = '↙'\" class=\"uk-button\"/><input type=\"button\" value=\"↓\" v-on=\"click: currentDirection = '↓'\" class=\"uk-button\"/><input type=\"button\" value=\"↘\" v-on=\"click: currentDirection = '↘'\" class=\"uk-button\"/></div><div class=\"uk-width-1-2\"><select v-model=\"currentAnimation\" class=\"uk-form-width-small\"><option v-repeat=\"animations\">{{$key}}</option></select><input v-on=\"click: rmAnimation\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/><br/><input v-model=\"newAnimationName\" placeholder=\"Name\" class=\"uk-form-width-small\"/><input v-on=\"click: addAnimation\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><br/><br/><button v-on=\"click: $emit('save')\" class=\"uk-button\">save</button><span>&nbsp;</span><input id=\"file\" type=\"file\"/></div></div><hr/><table v-component=\"frame\" v-with=\"selectedFrame: selectedFrame, frames: animations[currentAnimation].directions[currentDirection]\" class=\"frames uk-table uk-table-condensed uk-table-hover\"><thead><tr><th width=\"200\">name</th><th>time</th><th>x</th><th>y</th><th>sx</th><th>sy</th><th>rot</th><th></th></tr></thead><tbody><tr v-repeat=\"frames\" v-class=\"selectedFrame: $index == selectedFrame\" v-on=\"click: selectedFrame = $index\"><td><input v-model=\"name\"/></td><td><input type=\"number\" v-model=\"t\" number=\"number\" min=\"1\"/></td><td><input type=\"number\" v-model=\"x\" number=\"number\"/></td><td><input type=\"number\" v-model=\"y\" number=\"number\"/></td><td><input type=\"number\" v-model=\"sx\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"sy\" number=\"number\" step=\"0.1\"/></td><td><input type=\"number\" v-model=\"rot | degrees\" number=\"number\"/></td><td><input v-on=\"click: rmFrame($index)\" type=\"button\" value=\"rm\" class=\"uk-button uk-button-danger\"/></td></tr></tbody></table><input data-uk-modal=\"{target: '#add-modal'}\" type=\"button\" value=\"add\" class=\"uk-button uk-button-success\"/><p>↖ ↑ ↗ ← → ↙ ↓ ↘</p></div>");;return buf.join("");
 };
 },{"jade/runtime":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/jade/runtime.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/app.styl":[function(require,module,exports){
-module.exports = ".arrow input {\n  width: 3em;\n  height: 3em;\n}\n.frames input {\n  margin: 0 !important;\n  padding: 0 !important;\n  border-width: 0 0 1px 0 !important;\n  width: 100%;\n}\n.frames .selected {\n  background-color: #c00;\n}\n"
+module.exports = ".arrow input {\n  width: 3em;\n  height: 3em;\n}\n.frames input {\n  margin: 0 !important;\n  padding: 0 !important;\n  border-width: 0 0 1px 0 !important;\n  width: 100%;\n}\n.frames .selected {\n  background-color: #c00;\n}\n#over-container {\n  overflow: auto;\n  height: 400px;\n}\n"
 
 },{}],"/home/lain/gocode/src/oniproject/CharRedactor/src/main.js":[function(require,module,exports){
 'use strict';
@@ -8181,4 +8172,173 @@ require('insert-css')(require('./app.styl'));
 var Vue = require('vue');
 var app = new Vue(require('./app.coffee')).$mount('#app');
 
-},{"./app.coffee":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.coffee","./app.styl":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.styl","insert-css":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/insert-css/index.js","vue":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/vue.js"}]},{},["/home/lain/gocode/src/oniproject/CharRedactor/src/main.js"]);
+},{"./app.coffee":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.coffee","./app.styl":"/home/lain/gocode/src/oniproject/CharRedactor/src/app.styl","insert-css":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/insert-css/index.js","vue":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/vue.js"}],"/home/lain/gocode/src/oniproject/CharRedactor/src/modal.coffee":[function(require,module,exports){
+'use strict';
+var Vue;
+
+Vue = require('vue');
+
+module.exports = {
+  events: {
+    getRect: function(event) {
+      var frame, frames, name, texture, x, y, _results;
+      texture = this.$options.texture.baseTexture;
+      frames = this.$options.json.frames;
+      x = event.offsetX;
+      y = event.offsetY;
+      if (!(texture || frames)) {
+        return;
+      }
+      _results = [];
+      for (name in frames) {
+        frame = frames[name];
+        _results.push((function(_this) {
+          return function(name, frame) {
+            var isX, isY, rect;
+            rect = frame.frame;
+            if (rect) {
+              isX = rect.x > x - rect.w && rect.x < x;
+              isY = rect.y > y - rect.h && rect.y < y;
+              if (isX && isY) {
+                console.log(name);
+                return _this.$dispatch('add', name);
+              }
+            }
+          };
+        })(this)(name, frame));
+      }
+      return _results;
+    },
+    clearAll: function() {
+      console.log('clearAll');
+      delete this.$options['json'];
+      delete this.$options['texture'];
+      this.$options.icontainer.removeChildren();
+      this.$options.jcontainer.removeChildren();
+      this.$options.imageEl.value = '';
+      return this.$options.jsonEl.value = '';
+    },
+    checkLoaded: function() {
+      var form, frame, frames, name, texture, _results;
+      texture = this.$options.texture.baseTexture;
+      frames = this.$options.json.frames;
+      if (!(texture || frames)) {
+        return;
+      }
+      form = document.getElementById('modal-form');
+      form.style.display = 'none';
+      console.log('checkLoaded', texture, frames);
+      _results = [];
+      for (name in frames) {
+        frame = frames[name];
+        _results.push((function(_this) {
+          return function(name, frame) {
+            var actualSize, crop, realSize, rect, size, trim;
+            rect = frame.frame;
+            if (rect) {
+              size = new PIXI.Rectangle(rect.x, rect.y, rect.w, rect.h);
+              crop = size.clone();
+              trim = null;
+              if (frame.trimmed) {
+                actualSize = frame.sourceSize;
+                realSize = frame.spriteSourceSize;
+                trim = new PIXI.Rectangle(realSize.x, realSize.y, actualSize.w, actualSize.h);
+              }
+              return PIXI.TextureCache[name] = new PIXI.Texture(texture, size, crop, trim);
+            }
+          };
+        })(this)(name, frame));
+      }
+      return _results;
+    }
+  },
+  attached: function() {
+    var animate, canvas, icontainer, image, jcontainer, json, renderer, stage;
+    json = this.$options.jsonEl = document.getElementById('framesJson');
+    image = this.$options.imageEl = document.getElementById('framesImage');
+    json.addEventListener('change', (function(_this) {
+      return function(event) {
+        var file, reader;
+        file = event.target.files[0];
+        reader = new FileReader();
+        reader.onload = function(event) {
+          var frame, frames, graphics, name, _results;
+          json = _this.$options.json = JSON.parse(reader.result);
+          frames = json.frames;
+          graphics = new PIXI.Graphics();
+          _this.$options.jcontainer.addChild(graphics);
+          graphics.lineStyle(1, 0xCC0000, 1);
+          _results = [];
+          for (name in frames) {
+            frame = frames[name];
+            _results.push((function(name, frame) {
+              var rect, text;
+              rect = frame.frame;
+              if (rect) {
+                graphics.drawRect(rect.x, rect.y, rect.w, rect.h);
+                text = new PIXI.Text(name, {
+                  font: 'bold 12px Arial',
+                  fill: '#CC0000',
+                  stroke: 'black',
+                  strokeThickness: 2
+                });
+                text.x = rect.x;
+                text.y = rect.y;
+                return _this.$options.jcontainer.addChild(text);
+              }
+            })(name, frame));
+          }
+          return _results;
+        };
+        return reader.readAsText(file);
+      };
+    })(this));
+    image.addEventListener('change', (function(_this) {
+      return function(event) {
+        var file, reader;
+        file = event.target.files[0];
+        reader = new FileReader();
+        reader.onload = function(event) {
+          var onload, texture;
+          texture = _this.$options.texture = PIXI.Texture.fromImage(reader.result);
+          onload = function() {
+            var sprite;
+            sprite = _this.$options.sprite = new PIXI.Sprite(texture);
+            console.log('onload', texture.width, texture.height);
+            _this.$options.icontainer.addChild(sprite);
+            _this.$options.canvas.style.width = sprite.width + 'px';
+            _this.$options.canvas.style.height = sprite.height + 'px';
+            return _this.$options.renderer.resize(sprite.width, sprite.height);
+          };
+          if (texture.baseTexture.hasLoaded) {
+            return onload();
+          } else {
+            return texture.baseTexture.on('loaded', onload);
+          }
+        };
+        return reader.readAsDataURL(file);
+      };
+    })(this));
+    stage = this.$options.stage = new PIXI.Stage();
+    icontainer = this.$options.icontainer = new PIXI.DisplayObjectContainer();
+    stage.addChild(icontainer);
+    jcontainer = this.$options.jcontainer = new PIXI.DisplayObjectContainer();
+    stage.addChild(jcontainer);
+    canvas = this.$options.canvas = document.getElementById('add-canvas');
+    renderer = this.$options.renderer = PIXI.autoDetectRenderer(100, 100, {
+      view: canvas,
+      transparent: true,
+      antialias: false,
+      resolution: 1
+    });
+    animate = function() {
+      Vue.nextTick(animate);
+      return renderer.render(stage);
+    };
+    return Vue.nextTick(animate);
+  }
+};
+
+
+
+},{"vue":"/home/lain/gocode/src/oniproject/CharRedactor/node_modules/vue/src/vue.js"}]},{},["/home/lain/gocode/src/oniproject/CharRedactor/src/main.js"]);

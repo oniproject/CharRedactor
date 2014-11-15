@@ -7,7 +7,7 @@ var Actor = function(data) {
 	//this.textures = textures;
 
 	this._currentAnimation = 'idle';
-	this._currentDirection = 'n';
+	this._currentDirection = '↓';
 	this._currentFrame = 0;
 
 	this.lastTime = window.performance.now();

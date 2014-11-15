@@ -69,20 +69,29 @@ module.exports =
 				val * (Math.PI / 180)
 
 	components:
-		frame: {}
+		frame:
+			methods:
+				rmFrame: (id)-> @frames.splice(id, 1)
 		addDialog: require './modal.coffee'
 	events:
 		undo: (count) ->
 		redo: (count) ->
-		load: (data) ->
-			@animations = data
-			@$options.actor.data = data
+		load: (data) -> @animations = @$options.actor.data = data
 		save: ->
 			json = JSON.stringify @$data.animations
 			blob = new Blob([json], {type: 'text/json;charset=utf-8'})
 			saveAs blob, 'animations.json'
 		add: (name) ->
-			console.log 'add', name
+			anim = @animations[@currentAnimation]
+			frames = anim.directions[@currentDirection]
+			frames.push
+				name: name,
+				t: 100,
+				x: 0,
+				y: 0,
+				sx: 1.0,
+				sy: 1.0,
+				rot: 0,
 
 	methods:
 		addAnimation: ->
@@ -95,25 +104,6 @@ module.exports =
 		rmAnimation: ->
 			@animations.$delete(@currentAnimation)
 			@currentAnimation = ''
-		addFrame: ->
-			anim = @animations[@currentAnimation]
-			frames = anim.directions[@currentDirection]
-			frames.push
-				name: @newFrameName,
-				t: 0,
-				x: 0,
-				y: 0,
-				sx: 1.0,
-				sy: 1.0,
-				rot: 0,
-		rmFrame: ->
-			anim = @animations[@currentAnimation]
-			frames = anim.directions[@currentDirection]
-			if @selectedFrame != -1 and @selectedFrame < frames.length
-				frames.splice(@selectedFrame, 1)
-				console.info('rm', @selectedFrame)
-			else
-				console.warn('rm FAIL', @selectedFrame, frames.length)
 
 	ready: ->
 		handleFileSelect = (event)=>
@@ -141,14 +131,13 @@ module.exports =
 		graphics.lineTo(0, 10000)
 
 		actor = @$options.actor = new Actor(@$data.animations)
-		actor.scale.x = actor.scale.y = 0.5
 		container.addChild(actor)
 		actor.currentAnimation = @currentAnimation
 		actor.currentDirection = @currentDirection
 		actor.currentFrame = 0
 
-		@$watch 'currentDirection', ((val, oldVal) -> actor.currentDirection = val), true
-		@$watch 'currentAnimation', ((val, oldVal) -> actor.currentAnimation = val), true
+		@$watch 'currentDirection', ((val, oldVal) -> actor.currentDirection = val; actor.currentFrame=0), true
+		@$watch 'currentAnimation', ((val, oldVal) -> actor.currentAnimation = val; actor.currentFrame=0), true
 
 		canvas = document.getElementById('canvas')
 		renderer = PIXI.autoDetectRenderer getW(canvas), getH(canvas),
